@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Runs `mix` inside the pinned Elixir image (same as .devcontainer), so no local
+# Elixir install is needed. Usage: bin/mix test | bin/mix phx.server | ...
+set -euo pipefail
+
+image="hexpm/elixir:1.15.8-erlang-25.3.2.21-debian-bookworm-20260918"
+root="$(cd "$(dirname "$0")/.." && pwd)"
+
+flags=(--rm -v "$root":/app -w /app -v seat_reservation_mix:/root/.mix -v seat_reservation_hex:/root/.hex -e MIX_ENV)
+[[ -t 0 && -t 1 ]] && flags+=(-it)
+[[ "${1:-}" == "phx.server" ]] && flags+=(-p 4000:4000)
+
+exec docker run "${flags[@]}" "$image" sh -c \
+  'mix local.hex --force --if-missing >/dev/null && mix local.rebar --force --if-missing >/dev/null && exec mix "$@"' \
+  mix "$@"

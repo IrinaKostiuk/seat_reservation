@@ -33,6 +33,22 @@ The load test starts 1,000 fans, fires a burst of holds, kills 10 holding fans, 
 checks a subscriber received events, waits for one hold to expire, and prints a scorecard.
 It takes about 15 seconds. Run it as often as you like.
 
+Without a local Elixir install, use `bin/mix` instead of `mix`. It runs the same command in
+the pinned Docker image (Elixir 1.15.8 / OTP 25):
+
+```bash
+bin/mix test
+bin/mix run load_test.exs
+bin/mix phx.server   # web UI at http://localhost:4000
+```
+
+## Web UI
+
+A Phoenix LiveView page built only on the public API. Each browser tab is one fan process: it
+holds, confirms and releases seats as itself, sees every change live, and closing the tab frees
+its unconfirmed holds. Because the contract identifies a fan by its process, reloading the page
+makes you a new fan: your confirmed seats stay sold but no longer show as yours.
+
 ## Deliverable
 
 - Your code, with the load test passing (or as close as you got).
@@ -40,4 +56,8 @@ It takes about 15 seconds. Run it as often as you like.
 
 ## How it is structured and why
 
-_(your answer here)_
+One GenServer (`SeatReservation.Server`) owns all 100 seats, so every change is serialized and double booking is impossible without locks.
+It monitors holding fans and subscribers, and every hold carries a unique ID, so a crashed fan frees its seat at once while stale timers and stale `:DOWN` messages are ignored.
+Seat state lives in a protected ETS table that `SeatReservation.Store` inherits back if the server crashes, so a restarted server resumes holds (at their original deadlines), sales and subscriptions instead of losing them.
+Input is validated at the API boundary and a process can act only as itself, so garbage and impersonation never reach seat state.
+The web UI uses the same public API, with each browser tab acting as one fan.

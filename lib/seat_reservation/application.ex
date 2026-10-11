@@ -5,11 +5,16 @@ defmodule SeatReservation.Application do
   @impl true
   def start(_type, _args) do
     children = [
-      # Add your processes here, e.g.
-      # SeatReservation.Server,
-      # {Registry, keys: :duplicate, name: SeatReservation.Subscribers}
+      SeatReservation.Supervisor,
+      SeatReservationWeb.Endpoint
     ]
 
-    Supervisor.start_link(children, strategy: :one_for_one, name: SeatReservation.Supervisor)
+    Supervisor.start_link(children, strategy: :one_for_one, name: SeatReservation.AppSupervisor)
+  end
+
+  @impl true
+  def config_change(changed, _new, removed) do
+    SeatReservationWeb.Endpoint.config_change(changed, removed)
+    :ok
   end
 end
