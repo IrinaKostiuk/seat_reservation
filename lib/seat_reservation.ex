@@ -26,26 +26,20 @@ defmodule SeatReservation do
   not crash the server.
   """
   @spec hold(seat, fan) :: :ok | {:error, :taken | :invalid}
-  def hold(_seat, _fan) do
-    raise "not implemented"
-  end
+  def hold(seat, fan), do: GenServer.call(SeatReservation.Server, {:hold, seat, fan})
 
   @doc """
   Confirm a seat currently held by this fan.
   Returns `:ok` or `{:error, :not_held}`.
   """
   @spec confirm(seat, fan) :: :ok | {:error, :not_held | :invalid}
-  def confirm(_seat, _fan) do
-    raise "not implemented"
-  end
+  def confirm(seat, fan), do: GenServer.call(SeatReservation.Server, {:confirm, seat, fan})
 
   @doc """
   Release a seat held or confirmed by this fan. Always returns `:ok`.
   """
   @spec release(seat, fan) :: :ok
-  def release(_seat, _fan) do
-    raise "not implemented"
-  end
+  def release(seat, fan), do: GenServer.call(SeatReservation.Server, {:release, seat, fan})
 
   @doc """
   Subscribe the calling process to seat events. After subscribing, the caller
@@ -54,15 +48,11 @@ defmodule SeatReservation do
       {:seat_event, seat, :held | :released | :confirmed, fan}
   """
   @spec subscribe() :: :ok
-  def subscribe do
-    raise "not implemented"
-  end
+  def subscribe, do: GenServer.call(SeatReservation.Server, :subscribe)
 
   @doc """
   Snapshot of all seats: `%{seat => :free | {:held, fan} | {:confirmed, fan}}`.
   """
   @spec seats() :: %{seat => seat_state}
-  def seats do
-    raise "not implemented"
-  end
+  def seats, do: GenServer.call(SeatReservation.Server, :seats)
 end
