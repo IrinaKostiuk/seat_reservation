@@ -1,0 +1,511 @@
+/*
+ * Seat reservation. One accent colour; neutrals carry everything else.
+ * Seat states differ in shape as well as colour (outline, dashed, filled).
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --bg: #fcfcfd;
+  --surface: #ffffff;
+  --surface-sunken: #f0f0f3;
+  --border: #e8e8ec;
+  --border-strong: #cdced6;
+  --border-dashed: #9ea1ab;
+  --text: #1c2024;
+  --text-secondary: #60646c;
+  --text-muted: #8b8d98;
+  --sold: #e8e8ec;
+
+  --accent: #3e63dd;
+  --accent-hover: #3358d4;
+  --accent-soft: #edf2fe;
+  --accent-border: #8da4ef;
+  --accent-text: #3a5bc7;
+  --on-accent: #ffffff;
+
+  --online: #30a46c;
+  --offline: #ffb224;
+  --success: #218358;
+  --danger: #ce2c31;
+
+  --radius-seat: 6px;
+  --radius: 8px;
+  --radius-card: 12px;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111113;
+    --surface: #18191b;
+    --surface-sunken: #212225;
+    --border: #272a2d;
+    --border-strong: #3a3f42;
+    --border-dashed: #6b707a;
+    --text: #edeef0;
+    --text-secondary: #b0b4ba;
+    --text-muted: #7b8089;
+    --sold: #272a2d;
+
+    --accent-hover: #5472e4;
+    --accent-soft: #182449;
+    --accent-border: #3a5bc7;
+    --accent-text: #9eb1ff;
+
+    --online: #3dd68c;
+    --success: #3dd68c;
+    --danger: #ff9592;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+p,
+ul {
+  margin: 0;
+}
+
+ul {
+  padding: 0;
+  list-style: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+/* Layout */
+
+.page {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 56px 24px 64px;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px 24px;
+  margin-bottom: 40px;
+}
+
+.title {
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+
+.subtitle {
+  margin-top: 4px;
+  color: var(--text-secondary);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 272px;
+  gap: 40px;
+  align-items: start;
+}
+
+/* Availability and connection status */
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--online);
+}
+
+/* Both labels share one grid cell, so swapping them never shifts the layout. */
+.status-text {
+  display: inline-grid;
+}
+
+.status-text > * {
+  grid-area: 1 / 1;
+}
+
+.when-offline {
+  visibility: hidden;
+}
+
+/*
+ * Until the socket is connected, seats can't be used. The offline state shows
+ * only after a short delay, so a normal page load never flashes it.
+ */
+[data-phx-main]:not(.phx-connected) .when-online {
+  animation: hide 0s 600ms forwards;
+}
+
+[data-phx-main]:not(.phx-connected) .when-offline {
+  animation: show 0s 600ms forwards;
+}
+
+[data-phx-main]:not(.phx-connected) .status-dot {
+  animation: offline 0s 600ms forwards;
+}
+
+[data-phx-main]:not(.phx-connected) .seats {
+  pointer-events: none;
+  animation: dim 150ms 600ms forwards;
+}
+
+@keyframes hide {
+  to {
+    visibility: hidden;
+  }
+}
+
+@keyframes show {
+  to {
+    visibility: visible;
+  }
+}
+
+@keyframes offline {
+  to {
+    background: var(--offline);
+  }
+}
+
+@keyframes dim {
+  to {
+    opacity: 0.5;
+  }
+}
+
+/* Seat map */
+
+.stage {
+  margin-bottom: 20px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.stage::before {
+  content: "";
+  display: block;
+  height: 4px;
+  margin: 0 15% 8px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+
+.seats {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.seat {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-seat);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 150ms var(--ease),
+    border-color 150ms var(--ease),
+    color 150ms var(--ease),
+    transform 100ms var(--ease);
+}
+
+.seat:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.seat:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.seat:disabled {
+  cursor: default;
+}
+
+.seat-held {
+  border-style: dashed;
+  border-color: var(--border-dashed);
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.seat-sold {
+  border-color: transparent;
+  background: var(--sold);
+  color: var(--text-muted);
+}
+
+.seat-holding {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.seat-owned {
+  border-color: transparent;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 20px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+}
+
+.swatch-free {
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+
+.swatch-held {
+  border-style: dashed;
+  border-color: var(--border-dashed);
+}
+
+.swatch-sold {
+  background: var(--sold);
+}
+
+.swatch-owned {
+  background: var(--accent);
+}
+
+/* Your seats */
+
+.panel {
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+.panel-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.hint {
+  margin-top: 6px;
+  color: var(--text-secondary);
+}
+
+.rows {
+  margin-top: 12px;
+}
+
+.button-primary + .rows {
+  margin-top: 20px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+/* In a hold row the countdown bar doubles as the divider. */
+.row-hold {
+  border-top: 0;
+  padding-bottom: 0;
+}
+
+.row-meta {
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.row-meta-success {
+  color: var(--success);
+}
+
+.countdown {
+  grid-column: 1 / -1;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 1px;
+  background: var(--surface-sunken);
+}
+
+.countdown-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left;
+}
+
+.notice > span {
+  display: block;
+  margin-top: 12px;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+/* Buttons */
+
+.button-primary {
+  width: 100%;
+  height: 40px;
+  margin-top: 16px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms var(--ease);
+}
+
+.button-primary:hover {
+  background: var(--accent-hover);
+}
+
+.icon-button,
+.text-button {
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background-color 150ms var(--ease),
+    color 150ms var(--ease);
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -6px -6px -6px 0;
+  padding: 0;
+  color: var(--text-muted);
+}
+
+.text-button {
+  margin: -4px -6px;
+  padding: 4px 6px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.icon-button:hover,
+.text-button:hover {
+  background: var(--surface-sunken);
+  color: var(--text);
+}
+
+:is(.seat, .button-primary, .icon-button, .text-button):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Phones: the panel sticks to the bottom so Confirm stays in reach. */
+
+@media (max-width: 767px) {
+  .page {
+    padding: 24px 16px 0;
+  }
+
+  .header {
+    margin-bottom: 24px;
+  }
+
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+
+  .seats {
+    gap: 4px;
+  }
+
+  .seat {
+    border-radius: 5px;
+    font-size: 11px;
+  }
+
+  .panel {
+    position: sticky;
+    bottom: 0;
+    max-height: 50vh;
+    margin: 0 -16px;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    overflow-y: auto;
+    border-width: 1px 0 0;
+    border-radius: var(--radius-card) var(--radius-card) 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+  }
+}
