@@ -1,0 +1,8 @@
+.git
+.cache
+_build
+deps
+.DS_Store
+*.dump
+/tmp
+/cover

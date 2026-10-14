@@ -22,8 +22,15 @@ defmodule SeatReservation.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
+      {:phoenix, "~> 1.7.0"},
+      {:phoenix_live_view, "~> 1.0.0"},
+      {:phoenix_html, "~> 4.1"},
+      # Stay compatible with the exercise's Elixir 1.15 runtime.
+      {:phoenix_template, "~> 1.0.0"},
+      {:plug, "~> 1.19.0"},
+      {:bandit, "~> 1.12.5"},
+      {:jason, "~> 1.4"},
+      {:floki, "~> 0.36.0", only: :test}
     ]
   end
 end

@@ -23,10 +23,51 @@ Everything else (which processes exist, who owns the state, how failures are han
 - Keep your AI chat history; you'll be asked to share it (anonymised).
 - Don't look at other participants' work.
 
-## Run
+## Run the Phoenix UI
+
+With Docker (no local Elixir or Node installation needed):
 
 ```bash
-mix compile
+docker compose up --build
+```
+
+Open **http://localhost:4000**. Stop with Ctrl+C, then `docker compose down`.
+Rebuild with the same command after editing the source.
+
+With Elixir 1.15+ and Erlang installed:
+
+```bash
+mix local.hex --force
+mix local.rebar --force
+mix deps.get
+mix phx.server
+```
+
+Pick a seat to hold it, then confirm within 10 seconds. The map updates live across
+browsers. Tabs in the same browser share their reservations; use a private window
+or a different browser to try competing fans. Confirmed seats survive refreshes.
+Closing the last connected tab releases unconfirmed holds once its disconnect is
+detected. Reservations and browser identities are in memory and reset on server
+restart; clearing browser cookies also loses access to that browser's reservations.
+
+The UI serves its JavaScript from the locked Phoenix dependencies and needs no
+asset build or external CDN. This is a local development setup. Production mode
+requires `SECRET_KEY_BASE` and `PHX_HOST`; set `PHX_SERVER=true` to start the endpoint
+outside `mix phx.server`.
+
+## Run the checks
+
+```bash
+docker compose run --rm web mix test
+docker compose run --rm web mix run load_test.exs
+```
+
+Or locally:
+
+```bash
+mix format --check-formatted
+mix compile --warnings-as-errors
+mix test
 mix run load_test.exs
 ```
 
@@ -41,4 +82,8 @@ It takes about 15 seconds. Run it as often as you like.
 
 ## How it is structured and why
 
-_(your answer here)_
+One supervised GenServer owns all 100 seats and serializes requests, preventing double bookings.
+Each hold has a 10-second monotonic deadline and a uniquely tagged timer, so stale timers cannot release newer holds.
+Fans are monitored, never linked: a crash releases their active holds while confirmed reservations remain.
+Phoenix LiveView subscribes to seat events; monitored browser-session workers preserve ownership across refreshes and release holds on disconnect.
+State is in memory and resets on server restart; one owner keeps this small concert simple and responsive.

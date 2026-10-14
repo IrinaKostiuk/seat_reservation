@@ -1,7 +1,8 @@
 {
   "name": "seat_reservation",
-  "image": "hexpm/elixir:1.15.8-erlang-25.3.2.8-debian-bookworm-20240130",
+  "image": "hexpm/elixir:1.15.8-erlang-25.3.2.8-debian-bookworm-20260610-slim",
   "postCreateCommand": "mix local.hex --force && mix local.rebar --force && mix deps.get && mix compile",
+  "forwardPorts": [4000],
   "customizations": {
     "vscode": {
       "extensions": ["JakeBecker.elixir-ls"]
