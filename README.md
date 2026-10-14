@@ -12,6 +12,7 @@ There are **100 seats**. Many fans try to grab seats at the same time.
    (`{:seat_event, seat, :held | :released | :confirmed, fan}`).
 4. If one fan crashes or sends garbage, the other fans and the seat data must not be affected.
 5. The server must stay responsive when 1,000 fans each try to hold a seat within one second.
+6. Add UI
 
 The function signatures and return values are fixed — see `lib/seat_reservation.ex`.
 Everything else (which processes exist, who owns the state, how failures are handled) is your decision.
