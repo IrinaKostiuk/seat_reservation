@@ -38,6 +38,22 @@ It takes about 15 seconds. Run it as often as you like.
 - Your code, with the load test passing (or as close as you got).
 - Replace this README's last section with **3–5 lines: how is your system structured, and why?**
 
+## Web UI (Phoenix LiveView)
+
+To launch the real-time interactive Phoenix LiveView dashboard:
+
+```bash
+mix run --no-halt
+# or
+iex -S mix
+```
+
+Open [http://localhost:4000](http://localhost:4000) in your browser.
+
 ## How it is structured and why
 
-_(your answer here)_
+- **Independent Seat GenServers**: Each of the 100 seats is managed by its own GenServer process (`SeatReservation.Seat`), enabling concurrent lock-free operations across seats, automatic hold expiration timers, and fan monitoring via `Process.monitor/1`.
+- **Fault Isolation**: With seats supervised individually (`:one_for_one`), a crash or failure in one seat or fan cannot affect other seats or fans.
+- **Concurrent ETS Snapshot**: A shared ETS table (`:seat_reservation_seats` with `read_concurrency: true`) is updated on every state transition, enabling O(1) concurrent non-blocking reads for `SeatReservation.seats/0`.
+- **Decoupled PubSub**: An OTP `Registry` with duplicate keys (`SeatReservation.Subscribers`) handles lightweight, fast event broadcasting (`{:seat_event, seat, state, fan}`) to all subscribed fans without blocking reservation workflows.
+- **Real-Time Phoenix LiveView UI**: An interactive web interface (`SeatReservationWeb.SeatLive`) rendered over WebSocket on port 4000, displaying real-time seat availability, live event logs, and user controls (Hold, Confirm, Release).
